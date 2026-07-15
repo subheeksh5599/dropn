@@ -9,7 +9,7 @@ function Nav() {
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 px-6 py-4 flex items-center justify-between transition-colors ${scrolled ? "bg-black/95" : ""}`}>
       {/* Logo left */}
-      <span className="font-['Archivo_Black'] text-[#FF4D00] text-lg tracking-tight">DROPN</span>
+      <span className="font-['Archivo_Black'] text-black text-lg tracking-tight">DROPN</span>
 
       {/* Floating black pill center (hidden on mobile) */}
       <div className="hidden md:flex items-center gap-0 bg-black border-2 border-white rounded-full px-6 py-2.5">
