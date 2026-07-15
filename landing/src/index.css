@@ -1,0 +1,144 @@
+@import "tailwindcss";
+
+@theme {
+  --color-orange: #FF4D00;
+  --color-black: #000000;
+  --color-white: #FFFFFF;
+  --font-display: "Archivo Black", sans-serif;
+  --font-mono: "Space Mono", monospace;
+  --font-body: "Inter", sans-serif;
+}
+
+/* ── Base ──────────────────────────────────────────── */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-black);
+  color: var(--color-orange);
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--color-black);
+  color: var(--color-white);
+  overflow-x: hidden;
+}
+
+/* ── Utilities ─────────────────────────────────────── */
+
+.border-brutal {
+  border: 2px solid var(--color-black);
+}
+
+.border-brutal-white {
+  border: 2px solid var(--color-white);
+}
+
+.skew-neg {
+  transform: skewY(-2deg);
+}
+
+.skew-pos {
+  transform: skewY(2deg);
+}
+
+.unskew {
+  transform: skewY(2deg);
+}
+
+.unskew-neg {
+  transform: skewY(-2deg);
+}
+
+/* ── Marquee ───────────────────────────────────────── */
+
+@keyframes marquee-left {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes marquee-right {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+
+.animate-marquee-left {
+  animation: marquee-left 30s linear infinite;
+}
+
+.animate-marquee-right {
+  animation: marquee-right 30s linear infinite;
+}
+
+/* ── Spin indicator ────────────────────────────────── */
+
+@keyframes spin-slow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 12s linear infinite;
+}
+
+/* ── Hover interactions ────────────────────────────── */
+
+.hover-translate {
+  transition: transform 0.3s ease;
+}
+
+.hover-translate:hover {
+  transform: translateX(16px);
+}
+
+.hover-scale {
+  transition: transform 0.3s ease;
+}
+
+.hover-scale:hover {
+  transform: scale(1.1);
+}
+
+/* ── Section dividers ──────────────────────────────── */
+
+.section-divider {
+  height: 2px;
+  background: var(--color-black);
+  width: 100%;
+}
+
+.section-divider-white {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.2);
+  width: 100%;
+}
+
+/* ── Skewed transition block ───────────────────────── */
+
+.skew-block {
+  position: relative;
+  height: 80px;
+  background: var(--color-black);
+  transform: skewY(-2deg);
+  margin-top: -40px;
+  z-index: 1;
+}
+
+.skew-block-orange {
+  position: relative;
+  height: 80px;
+  background: var(--color-orange);
+  transform: skewY(-2deg);
+  margin-top: -40px;
+  z-index: 1;
+}
