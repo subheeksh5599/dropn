@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import Dashboard from "./pages/Dashboard";
+import ClaimPage from "./pages/Claim";
 import "./index.css";
 
 /* ─── Floating Pill Navigation ────────────────────────── */
@@ -9,25 +12,30 @@ function Nav() {
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 px-6 py-4 flex items-center justify-between transition-colors ${scrolled ? "bg-black/95" : ""}`}>
       {/* Logo left */}
-      <span className="font-['Archivo_Black'] text-black text-lg tracking-tight">DROPN</span>
+      <Link to="/" className="font-['Archivo_Black'] text-black text-lg tracking-tight">DROPN</Link>
 
       {/* Floating black pill center (hidden on mobile) */}
       <div className="hidden md:flex items-center gap-0 bg-black border-2 border-white rounded-full px-6 py-2.5">
-        {["How", "Drops", "API", "GitHub"].map((link) => (
-          <a
-            key={link}
-            href={link === "GitHub" ? "https://github.com/subheeksh5599/dropn" : `#${link.toLowerCase()}`}
+        {[
+          ["How", "#how"],
+          ["Drops", "#drops"],
+          ["Dashboard", "/dashboard"],
+          ["API", "#api"],
+        ].map(([label, href]) => (
+          <Link
+            key={label}
+            to={href}
             className="font-['Space_Mono'] text-[12px] tracking-[-0.02em] text-white px-3 py-1 rounded-full transition-all duration-200 hover:bg-white hover:text-black"
           >
-            {link}
-          </a>
+            {label}
+          </Link>
         ))}
       </div>
 
       {/* Social right */}
-      <a href="https://github.com/subheeksh5599/dropn" target="_blank" className="font-['Space_Mono'] text-[12px] text-white/60 hover:text-[#FF4D00] transition-colors">
-        GH
-      </a>
+      <Link to="/dashboard" className="font-['Space_Mono'] text-[12px] text-white/60 hover:text-[#FF4D00] transition-colors">
+        APP
+      </Link>
     </nav>
   );
 }
@@ -255,10 +263,12 @@ function CTA() {
       </p>
 
       <div className="flex flex-col md:flex-row items-center justify-center gap-4">
-        <a href="https://github.com/subheeksh5599/dropn" target="_blank"
-          className="font-['Space_Mono'] text-sm tracking-[-0.02em] bg-black text-white rounded-full px-10 py-4 border-2 border-white hover-pop inline-block">
-          VIEW ON GITHUB
-        </a>
+        <Link
+          to="/dashboard"
+          className="font-['Space_Mono'] text-sm tracking-[-0.02em] bg-white text-black rounded-full px-10 py-4 border-2 border-white hover-pop inline-block"
+        >
+          OPEN DASHBOARD
+        </Link>
         <a href="#how"
           className="font-['Space_Mono'] text-sm tracking-[-0.02em] text-white border-2 border-white/30 rounded-full px-10 py-4 hover:border-[#FF4D00] hover:text-[#FF4D00] transition-all inline-block">
           HOW IT WORKS
@@ -279,11 +289,22 @@ function Footer() {
           <span className="font-['Space_Mono'] text-[10px] md:text-xs text-white/40">© 2026 • MIT License</span>
         </div>
         <div className="flex gap-6">
-          {["GITHUB", "NIMIQ", "API", "DOCS"].map((l) => (
-            <a key={l} href="#" className="font-['Space_Mono'] text-[10px] md:text-xs text-white/40 hover:text-[#FF4D00] transition-colors tracking-[-0.02em] uppercase">
-              {l}
-            </a>
-          ))}
+          {[
+            ["GITHUB", "https://github.com/subheeksh5599/dropn"],
+            ["DASHBOARD", "/dashboard"],
+            ["API", "#api"],
+            ["DOCS", "#"],
+          ].map(([label, href]) =>
+            href.startsWith("http") ? (
+              <a key={label} href={href} target="_blank" className="font-['Space_Mono'] text-[10px] md:text-xs text-white/40 hover:text-[#FF4D00] transition-colors tracking-[-0.02em] uppercase">
+                {label}
+              </a>
+            ) : (
+              <Link key={label} to={href} className="font-['Space_Mono'] text-[10px] md:text-xs text-white/40 hover:text-[#FF4D00] transition-colors tracking-[-0.02em] uppercase">
+                {label}
+              </Link>
+            )
+          )}
         </div>
       </div>
     </footer>
@@ -292,7 +313,7 @@ function Footer() {
 
 /* ─── App ────────────────────────────────────────────── */
 
-export default function App() {
+function LandingPage() {
   return (
     <main>
       <Nav />
@@ -307,5 +328,17 @@ export default function App() {
       <CTA />
       <Footer />
     </main>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/claim/:id" element={<ClaimPage />} />
+      </Routes>
+    </BrowserRouter>
   );
 }

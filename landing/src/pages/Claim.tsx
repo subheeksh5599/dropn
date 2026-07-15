@@ -1,0 +1,188 @@
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { getDrop, claimDrop } from "../api";
+import type { Drop, ClaimResult } from "../api";
+
+export default function ClaimPage() {
+  const { id } = useParams<{ id: string }>();
+  const [drop, setDrop] = useState<Drop | null>(null);
+  const [claim, setClaim] = useState<ClaimResult | null>(null);
+  const [wallet, setWallet] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [claiming, setClaiming] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!id) return;
+    getDrop(id)
+      .then((d) => {
+        setDrop(d);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError("Drop not found or link is invalid.");
+        setLoading(false);
+      });
+  }, [id]);
+
+  const handleClaim = async () => {
+    if (!id || !wallet.trim()) return setError("Enter your Nimiq wallet address");
+    setClaiming(true);
+    setError("");
+    try {
+      const result = await claimDrop(id, wallet.trim());
+      setClaim(result);
+    } catch (err: any) {
+      setError(err.message || "Claim failed");
+    } finally {
+      setClaiming(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <p className="font-['Space_Mono'] text-white/40 text-sm animate-pulse">Loading drop...</p>
+      </div>
+    );
+  }
+
+  if (error && !drop) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center px-6">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🔗</div>
+          <h1 className="font-['Archivo_Black'] text-white text-[8vw] uppercase tracking-[-0.04em] leading-[0.9] mb-4">
+            Link<br />Expired
+          </h1>
+          <p className="text-white/50 text-sm mb-8" style={{ fontFamily: "'Space Mono', monospace" }}>
+            {error}
+          </p>
+          <a
+            href="/"
+            className="font-['Space_Mono'] text-sm text-[#FF4D00] hover:underline uppercase tracking-[0.1em]"
+          >
+            ← Back to DropN
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // Already claimed successfully
+  if (claim) {
+    return (
+      <div className="min-h-screen bg-[#FF4D00] flex items-center justify-center px-6">
+        <div className="text-center max-w-md">
+          <div className="text-7xl mb-6">🎉</div>
+          <h1 className="font-['Archivo_Black'] text-black uppercase tracking-[-0.04em] leading-[0.9] text-[10vw] md:text-[6vw] mb-2">
+            You got<br />{claim.amount.toFixed(4)} NIM!
+          </h1>
+          <p className="text-black/70 text-lg mb-2" style={{ fontFamily: "'Inter', sans-serif" }}>
+            {claim.message}
+          </p>
+          <p className="text-black/50 text-xs mb-8" style={{ fontFamily: "'Space Mono', monospace" }}>
+            From: {claim.sender_wallet.slice(0, 16)}... • {claim.position} of {claim.total_recipients} claimed
+          </p>
+          <a
+            href="/"
+            className="font-['Space_Mono'] text-sm text-black border-2 border-black rounded-full px-8 py-3 hover:bg-black hover:text-[#FF4D00] transition-all inline-block uppercase tracking-[0.1em] font-bold"
+          >
+            Create Your Own Drop
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // Drop is exhausted
+  if (drop?.status === "exhausted") {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center px-6">
+        <div className="text-center max-w-md">
+          <div className="text-7xl mb-6">⏰</div>
+          <h1 className="font-['Archivo_Black'] text-white/30 uppercase tracking-[-0.04em] leading-[0.9] text-[10vw] md:text-[6vw] mb-4">
+            Too<br />Late!
+          </h1>
+          <p className="text-white/50 text-sm mb-2" style={{ fontFamily: "'Space Mono', monospace" }}>
+            This drop has been fully claimed.
+          </p>
+          <p className="text-white/30 text-xs mb-8" style={{ fontFamily: "'Space Mono', monospace" }}>
+            "{drop.message}"
+          </p>
+          <a
+            href="/"
+            className="font-['Space_Mono'] text-sm text-[#FF4D00] hover:underline uppercase tracking-[0.1em]"
+          >
+            ← Back to DropN
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // Active drop — show claim form
+  return (
+    <div className="min-h-screen bg-black flex items-center justify-center px-6">
+      <div className="text-center max-w-md w-full">
+        {/* Gift icon */}
+        <div className="text-7xl mb-6">🧧</div>
+
+        {/* Drop message */}
+        <h1 className="font-['Archivo_Black'] text-white uppercase tracking-[-0.04em] leading-[0.9] text-[8vw] md:text-[5vw] mb-2">
+          You've Been<br />Sent NIM!
+        </h1>
+        <p className="text-white/60 text-lg mb-2" style={{ fontFamily: "'Inter', sans-serif" }}>
+          "{drop?.message}"
+        </p>
+        <p className="text-white/30 text-xs mb-8" style={{ fontFamily: "'Space Mono', monospace" }}>
+          {drop?.remaining} of {drop?.total_recipients} remaining • Random payout
+        </p>
+
+        {/* Progress */}
+        <div className="w-full h-2 bg-white/10 rounded-full mb-2 overflow-hidden">
+          <div
+            className="h-full bg-[#FF4D00] rounded-full transition-all"
+            style={{
+              width: `${((drop?.claimed_count ?? 0) / (drop?.total_recipients ?? 1)) * 100}%`,
+            }}
+          />
+        </div>
+        <p className="font-['Space_Mono'] text-[10px] text-white/30 mb-8">
+          {drop?.claimed_count}/{drop?.total_recipients} claimed
+        </p>
+
+        {/* Wallet input */}
+        <div className="mb-4">
+          <input
+            type="text"
+            value={wallet}
+            onChange={(e) => setWallet(e.target.value)}
+            placeholder="Your Nimiq wallet (NQ12...)"
+            className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3.5 text-white text-sm font-['Space_Mono'] placeholder:text-white/20 focus:outline-none focus:border-[#FF4D00] transition-colors text-center"
+          />
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-['Space_Mono']">
+            {error}
+          </div>
+        )}
+
+        {/* Claim button */}
+        <button
+          onClick={handleClaim}
+          disabled={claiming || !wallet.trim()}
+          className="w-full bg-[#FF4D00] text-black font-['Space_Mono'] text-sm uppercase tracking-[0.1em] font-bold rounded-xl py-3.5 hover:opacity-90 transition-opacity disabled:opacity-50 mb-4"
+        >
+          {claiming ? "Claiming..." : "Claim Your NIM"}
+        </button>
+
+        <p className="font-['Space_Mono'] text-[10px] text-white/20">
+          Powered by DropN on Nimiq Pay
+        </p>
+      </div>
+    </div>
+  );
+}
