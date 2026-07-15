@@ -9,7 +9,7 @@ class DropCreate(BaseModel):
     """Request to create a new drop."""
     amount: float = Field(gt=0, description="Total NIM to distribute")
     message: str = Field(min_length=1, max_length=200, description="Sender's message")
-    recipients: int = Field(gt=1, le=100, description="Number of people who can claim")
+    recipients: int = Field(ge=2, le=100, description="Number of people who can claim")
     sender_wallet: str = Field(min_length=1, description="Sender's Nimiq wallet address")
 
 

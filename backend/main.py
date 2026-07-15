@@ -47,9 +47,6 @@ async def root():
 @app.post("/drops", response_model=DropCreateResponse, status_code=201)
 async def create_drop(data: DropCreate):
     """Create a new NIM drop. Generate random splits, return a claim link."""
-    if data.recipients > 100:
-        raise HTTPException(400, "Max 100 recipients per drop")
-
     result = storage.create_drop(
         amount=data.amount,
         message=data.message,
