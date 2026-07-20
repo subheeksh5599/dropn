@@ -99,83 +99,103 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <div className="max-w-4xl mx-auto px-6 py-24">
-        <div className="mb-12">
-          <h1 className="font-['Archivo_Black'] uppercase tracking-[-0.04em] leading-[0.9] text-[8vw] md:text-[5vw] mb-4">DASHBOARD</h1>
-          <p className="text-white/50 text-sm" style={{ fontFamily: "'Space Mono', monospace" }}>Create NIM drops and track them in real-time.</p>
+      <div className="max-w-lg mx-auto px-4 py-16">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="font-['Archivo_Black'] uppercase tracking-[-0.04em] leading-[0.9] text-[10vw] mb-2">DASHBOARD</h1>
+          <p className="text-white/40 text-[12px]" style={{ fontFamily: "'Space Mono', monospace" }}>Create NIM drops and track them in real-time.</p>
         </div>
 
-        <div className="grid lg:grid-cols-5 gap-8">
-          <div className="lg:col-span-3">
-            <form onSubmit={handleCreate} className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8">
-              <h2 className="font-['Space_Mono'] text-xs text-[#FF4D00] uppercase tracking-[0.1em] mb-6">New Drop</h2>
+        {/* Create form */}
+        <form onSubmit={handleCreate} className="bg-white/5 border border-white/10 rounded-2xl p-5 mb-8">
+          <h2 className="font-['Space_Mono'] text-[11px] text-[#FF4D00] uppercase tracking-[0.1em] mb-5">New Drop</h2>
 
-              {/* Wallet connect */}
-              <div className="mb-5">
-                <label className="block font-['Space_Mono'] text-[11px] text-white/50 uppercase tracking-[0.1em] mb-2">Your Wallet</label>
-                {wallet ? (
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-black border border-[#FF4D00]/30 rounded-xl px-4 py-3 text-[#FF4D00] text-sm font-['Space_Mono'] truncate">
-                      {wallet.slice(0, 16)}...{wallet.slice(-8)}
-                    </div>
-                    <button type="button" onClick={() => setWallet("")} className="px-3 py-3 rounded-xl text-white/40 hover:text-white/70 text-xs font-['Space_Mono'] transition-colors">
-                      ✕
-                    </button>
-                  </div>
-                ) : (
-                  <button type="button" onClick={handleConnect} disabled={connecting} className="w-full bg-[#FF4D00] text-black font-['Space_Mono'] text-sm uppercase tracking-[0.1em] font-bold rounded-xl py-3 hover:opacity-90 transition-opacity disabled:opacity-50">
-                    {connecting ? "Connecting..." : "Connect Nimiq Wallet"}
-                  </button>
-                )}
-              </div>
-
-              <div className="mb-5">
-                <label className="block font-['Space_Mono'] text-[11px] text-white/50 uppercase tracking-[0.1em] mb-2">Amount (NIM)</label>
-                <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="100" min="1" step="0.01" className="w-full bg-black border border-white/20 rounded-xl px-4 py-3 text-white text-sm font-['Space_Mono'] placeholder:text-white/20 focus:outline-none focus:border-[#FF4D00] transition-colors" />
-              </div>
-              <div className="mb-5">
-                <label className="block font-['Space_Mono'] text-[11px] text-white/50 uppercase tracking-[0.1em] mb-2">Message</label>
-                <input type="text" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Thanks for the great work! 🎉" maxLength={200} className="w-full bg-black border border-white/20 rounded-xl px-4 py-3 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF4D00] transition-colors" />
-              </div>
-              <div className="mb-6">
-                <label className="block font-['Space_Mono'] text-[11px] text-white/50 uppercase tracking-[0.1em] mb-2">Recipients</label>
-                <div className="flex gap-2">
-                  {[3, 5, 10, 25].map((n) => (
-                    <button key={n} type="button" onClick={() => setRecipients(String(n))} className={`px-4 py-2 rounded-xl text-sm font-['Space_Mono'] border transition-all ${recipients === String(n) ? "border-[#FF4D00] text-[#FF4D00] bg-[#FF4D00]/10" : "border-white/10 text-white/50 hover:border-white/30"}`}>{n}</button>
-                  ))}
+          {/* Wallet */}
+          <div className="mb-4">
+            <label className="block font-['Space_Mono'] text-[10px] text-white/50 uppercase tracking-[0.1em] mb-1.5">Your Wallet</label>
+            {wallet ? (
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-black border border-[#FF4D00]/30 rounded-xl px-4 py-3 text-[#FF4D00] text-[12px] font-['Space_Mono'] truncate">
+                  {wallet.slice(0, 14)}...{wallet.slice(-6)}
                 </div>
+                <button type="button" onClick={() => setWallet("")} className="px-3 py-3 rounded-xl text-white/40 active:text-white/70 text-xs font-['Space_Mono'] transition-colors">
+                  ✕
+                </button>
               </div>
-              {error && <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-['Space_Mono']">{error}</div>}
-              {success && <div className="mb-4 p-3 rounded-xl bg-green-500/10 border border-green-500/30 text-green-400 text-xs font-['Space_Mono'] break-all">{success}</div>}
-              <button type="submit" disabled={loading || !wallet} className="w-full bg-[#FF4D00] text-black font-['Space_Mono'] text-sm uppercase tracking-[0.1em] rounded-xl py-3.5 hover:opacity-90 transition-opacity disabled:opacity-50 font-bold">{loading ? "Creating..." : "Create Drop"}</button>
-            </form>
+            ) : (
+              <button type="button" onClick={handleConnect} disabled={connecting} className="w-full bg-[#FF4D00] text-black font-['Space_Mono'] text-[12px] uppercase tracking-[0.1em] font-bold rounded-xl py-3.5 active:opacity-80 transition-opacity disabled:opacity-50">
+                {connecting ? "Connecting..." : "Connect Nimiq Wallet"}
+              </button>
+            )}
           </div>
 
-          <div className="lg:col-span-2">
-            <h2 className="font-['Space_Mono'] text-xs text-[#FF4D00] uppercase tracking-[0.1em] mb-4">Recent Drops</h2>
-            {drops.length === 0 && <div className="text-white/30 text-sm py-12 text-center border border-white/10 rounded-2xl" style={{ fontFamily: "'Space Mono', monospace" }}>No drops yet.<br />Create your first one.</div>}
-            <div className="space-y-3">
-              {drops.map((drop) => (
-                <div key={drop.id} className="bg-white/5 border border-white/10 rounded-xl p-4 hover:border-white/20 transition-colors">
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <p className="text-white text-sm font-semibold mb-0.5" style={{ fontFamily: "'Inter', sans-serif" }}>{drop.message}</p>
-                      <p className="font-['Space_Mono'] text-[11px] text-white/40">{drop.total_amount} NIM • {drop.total_recipients} recipients</p>
-                    </div>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-['Space_Mono'] uppercase ${drop.status === "active" ? "bg-[#FF4D00]/20 text-[#FF4D00]" : "bg-white/10 text-white/40"}`}>{drop.status}</span>
-                  </div>
-                  <div className="w-full h-1 bg-white/10 rounded-full mb-3 overflow-hidden">
-                    <div className="h-full bg-[#FF4D00] rounded-full transition-all" style={{ width: `${(drop.claimed_count / drop.total_recipients) * 100}%` }} />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="font-['Space_Mono'] text-[10px] text-white/30">{drop.claimed_count}/{drop.total_recipients} claimed</span>
-                    <button onClick={() => copyLink(drop.id)} className="font-['Space_Mono'] text-[10px] text-white/50 hover:text-[#FF4D00] transition-colors uppercase">{copied === drop.id ? "Copied!" : "Copy Link"}</button>
-                  </div>
-                </div>
+          {/* Amount */}
+          <div className="mb-4">
+            <label className="block font-['Space_Mono'] text-[10px] text-white/50 uppercase tracking-[0.1em] mb-1.5">Amount (NIM)</label>
+            <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="100" min="1" step="0.01" inputMode="decimal" className="w-full bg-black border border-white/20 rounded-xl px-4 py-3 text-white text-[15px] font-['Space_Mono'] placeholder:text-white/20 focus:outline-none focus:border-[#FF4D00] transition-colors" />
+          </div>
+
+          {/* Message */}
+          <div className="mb-4">
+            <label className="block font-['Space_Mono'] text-[10px] text-white/50 uppercase tracking-[0.1em] mb-1.5">Message</label>
+            <input type="text" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Thanks for the great work!" maxLength={200} className="w-full bg-black border border-white/20 rounded-xl px-4 py-3 text-white text-[15px] placeholder:text-white/20 focus:outline-none focus:border-[#FF4D00] transition-colors" />
+          </div>
+
+          {/* Recipients */}
+          <div className="mb-5">
+            <label className="block font-['Space_Mono'] text-[10px] text-white/50 uppercase tracking-[0.1em] mb-1.5">Recipients</label>
+            <div className="grid grid-cols-4 gap-2">
+              {[3, 5, 10, 25].map((n) => (
+                <button key={n} type="button" onClick={() => setRecipients(String(n))} className={`py-2.5 rounded-xl text-[13px] font-['Space_Mono'] border transition-all ${recipients === String(n) ? "border-[#FF4D00] text-[#FF4D00] bg-[#FF4D00]/10" : "border-white/10 text-white/50 active:border-white/30"}`}>{n}</button>
               ))}
             </div>
-            {drops.length > 0 && <button onClick={refreshDrops} className="w-full mt-3 py-2 text-center font-['Space_Mono'] text-[11px] text-white/30 hover:text-white/60 transition-colors uppercase">Refresh</button>}
           </div>
+
+          {/* Feedback */}
+          {error && <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-[11px] font-['Space_Mono']">{error}</div>}
+          {success && <div className="mb-4 p-3 rounded-xl bg-green-500/10 border border-green-500/30 text-green-400 text-[11px] font-['Space_Mono'] break-all">{success}</div>}
+
+          {/* Submit */}
+          <button type="submit" disabled={loading || !wallet} className="w-full bg-[#FF4D00] text-black font-['Space_Mono'] text-[13px] uppercase tracking-[0.1em] rounded-xl py-3.5 active:opacity-80 transition-opacity disabled:opacity-50 font-bold">
+            {loading ? "Creating..." : "Create Drop"}
+          </button>
+        </form>
+
+        {/* Recent drops */}
+        <div>
+          <h2 className="font-['Space_Mono'] text-[11px] text-[#FF4D00] uppercase tracking-[0.1em] mb-3">Recent Drops</h2>
+          {drops.length === 0 && (
+            <div className="text-white/30 text-[12px] py-12 text-center border border-white/10 rounded-2xl" style={{ fontFamily: "'Space Mono', monospace" }}>
+              No drops yet.<br />Create your first one.
+            </div>
+          )}
+          <div className="space-y-2.5">
+            {drops.map((drop) => (
+              <div key={drop.id} className="bg-white/5 border border-white/10 rounded-xl p-4">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="min-w-0 flex-1 mr-2">
+                    <p className="text-white text-[13px] font-semibold mb-0.5 truncate" style={{ fontFamily: "'Inter', sans-serif" }}>{drop.message}</p>
+                    <p className="font-['Space_Mono'] text-[10px] text-white/40">{drop.total_amount} NIM • {drop.total_recipients} people</p>
+                  </div>
+                  <span className={`shrink-0 px-2 py-0.5 rounded-full text-[9px] font-['Space_Mono'] uppercase ${drop.status === "active" ? "bg-[#FF4D00]/20 text-[#FF4D00]" : "bg-white/10 text-white/40"}`}>{drop.status}</span>
+                </div>
+                <div className="w-full h-1 bg-white/10 rounded-full mb-2.5 overflow-hidden">
+                  <div className="h-full bg-[#FF4D00] rounded-full transition-all" style={{ width: `${(drop.claimed_count / drop.total_recipients) * 100}%` }} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="font-['Space_Mono'] text-[10px] text-white/30">{drop.claimed_count}/{drop.total_recipients} claimed</span>
+                  <button onClick={() => copyLink(drop.id)} className="font-['Space_Mono'] text-[10px] text-white/50 active:text-[#FF4D00] transition-colors uppercase py-1 px-2 -mr-2">
+                    {copied === drop.id ? "Copied!" : "Copy Link"}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          {drops.length > 0 && (
+            <button onClick={refreshDrops} className="w-full mt-3 py-2.5 text-center font-['Space_Mono'] text-[11px] text-white/30 active:text-white/60 transition-colors uppercase">
+              Refresh
+            </button>
+          )}
         </div>
       </div>
     </div>
