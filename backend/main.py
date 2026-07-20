@@ -1,18 +1,22 @@
 """DropN — Red Envelope style NIM drops. Create, share, claim."""
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from . import storage
+from .storage import ESCROW_PRIVATE_KEY, ESCROW_NETWORK
 from .models import (
     ClaimRequest,
     ClaimResponse,
     DropCreate,
     DropCreateResponse,
     DropResponse,
+    FundDropRequest,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -35,12 +39,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Serve built frontend (for unified Render deploy)
+FRONTEND_DIR = Path(__file__).parent.parent / "landing" / "dist"
+if FRONTEND_DIR.exists():
+    app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "assets"), name="assets")
+    # Favicon and other root-level static files
+    for static_file in FRONTEND_DIR.glob("*"):
+        if static_file.is_file():
+            app.mount(f"/{static_file.name}", StaticFiles(directory=str(FRONTEND_DIR)), name=f"root_{static_file.stem}")
+
 
 # ── Routes ────────────────────────────────────────────
 
 
-@app.get("/")
-async def root():
+@app.get("/health")
+async def health():
     return {"name": "DropN", "version": "1.0.0", "status": "online"}
 
 
@@ -108,6 +121,22 @@ async def claim_page(drop_id: str):
     )
 
 
+@app.get("/escrow")
+async def escrow_status():
+    """Check if escrow wallet is configured."""
+    addr = storage.get_escrow_address()
+    return {"configured": ESCROW_PRIVATE_KEY != "", "network": ESCROW_NETWORK}
+
+
+@app.post("/drops/{drop_id}/fund")
+async def fund_drop(drop_id: str, data: FundDropRequest):
+    """Mark a drop as funded by the sender (after NIM has been sent)."""
+    ok = storage.mark_drop_funded(drop_id, data.tx_hash)
+    if not ok:
+        raise HTTPException(404, "Drop not found or already funded")
+    return {"status": "funded", "drop_id": drop_id, "tx_hash": data.tx_hash}
+
+
 # ── Error handler ─────────────────────────────────────
 
 
@@ -115,3 +144,17 @@ async def claim_page(drop_id: str):
 async def catch_all(request: Request, exc: Exception):
     logger.error(f"Unhandled error: {exc}")
     return JSONResponse({"error": str(exc)}, status_code=500)
+
+
+# ── SPA fallback (serve index.html for client-side routes) ──
+if FRONTEND_DIR.exists():
+    from fastapi.responses import FileResponse
+
+    @app.get("/{full_path:path}")
+    async def spa_fallback(full_path: str):
+        """Serve index.html for any non-API route (SPA client-side routing)."""
+        # API routes are handled above — this catches everything else
+        index_path = FRONTEND_DIR / "index.html"
+        if index_path.exists():
+            return FileResponse(index_path)
+        return JSONResponse({"error": "Frontend not built"}, status_code=404)
