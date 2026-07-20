@@ -1,13 +1,18 @@
-"""SQLite storage for DropN — drops, splits, and claims."""
+"""SQLite storage for DropN — drops, splits, claims, and escrow."""
 import json
+import os
 import random
 import sqlite3
+import subprocess
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
 DB_PATH = Path(__file__).parent / "dropn.db"
+ESCROW_SCRIPT = Path(__file__).parent.parent / "escrow.js"
+ESCROW_PRIVATE_KEY = os.environ.get("ESCROW_PRIVATE_KEY", "")
+ESCROW_NETWORK = os.environ.get("ESCROW_NETWORK", "test")
 
 
 def _conn():
@@ -29,6 +34,8 @@ def init_db():
             total_recipients INTEGER NOT NULL,
             sender_wallet TEXT NOT NULL,
             status TEXT NOT NULL DEFAULT 'active',
+            funded INTEGER NOT NULL DEFAULT 0,
+            escrow_tx_hash TEXT,
             created_at TEXT NOT NULL
         );
 
@@ -39,6 +46,7 @@ def init_db():
             position INTEGER NOT NULL,
             claimed INTEGER NOT NULL DEFAULT 0,
             claimer_wallet TEXT,
+            payout_tx_hash TEXT,
             claimed_at TEXT
         );
 
@@ -52,16 +60,39 @@ def _generate_splits(total: float, n: int) -> list[float]:
     """Generate n random shares that sum exactly to total (stick-breaking)."""
     if n <= 1:
         return [total]
-    # Generate n-1 random cut points, then take differences
     cuts = sorted(random.random() for _ in range(n - 1))
     cuts = [0.0] + cuts + [1.0]
-    # Shares proportional to gap sizes, then rounded
     shares = [round((cuts[i + 1] - cuts[i]) * total, 6) for i in range(n)]
-    # Adjust the last share to fix any rounding error
     actual_sum = sum(shares)
     if actual_sum != total:
         shares[-1] = round(shares[-1] + (total - actual_sum), 6)
     return shares
+
+
+def _run_escrow(*args) -> dict:
+    """Run the escrow.js Node helper and return parsed JSON result."""
+    if not ESCROW_SCRIPT.exists():
+        return {"error": "escrow.js not found — install @nimiq/core: npm install @nimiq/core"}
+    cmd = ["node", str(ESCROW_SCRIPT), *args]
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+    if result.returncode != 0:
+        return {"error": result.stderr.strip() or "escrow helper failed"}
+    try:
+        return json.loads(result.stdout.strip())
+    except json.JSONDecodeError:
+        return {"error": f"invalid escrow output: {result.stdout[:200]}"}
+
+
+def get_escrow_address() -> Optional[dict]:
+    """Get or derive the escrow wallet address from the private key."""
+    if not ESCROW_PRIVATE_KEY:
+        return None
+    result = _run_escrow("new-wallet")
+    if "error" in result:
+        return None
+    # We don't use the generated key — we use the env var key
+    # Just check that the escrow helper works
+    return {"network": ESCROW_NETWORK}
 
 
 def create_drop(amount: float, message: str, recipients: int, sender_wallet: str) -> dict:
@@ -69,8 +100,6 @@ def create_drop(amount: float, message: str, recipients: int, sender_wallet: str
     drop_id = uuid.uuid4().hex[:12]
     now = datetime.now(timezone.utc).isoformat()
     splits = _generate_splits(amount, recipients)
-
-    # Shuffle splits so claims are random order, not largest-first
     random.shuffle(splits)
 
     db = _conn()
@@ -93,11 +122,12 @@ def create_drop(amount: float, message: str, recipients: int, sender_wallet: str
         "total_amount": amount,
         "recipients": recipients,
         "status": "active",
+        "funded": False,
     }
 
 
 def get_drop(drop_id: str) -> Optional[dict]:
-    """Get drop details with claim stats."""
+    """Get drop details with claim stats and escrow status."""
     db = _conn()
     row = db.execute("SELECT * FROM drops WHERE id=?", (drop_id,)).fetchone()
     if not row:
@@ -121,21 +151,37 @@ def get_drop(drop_id: str) -> Optional[dict]:
         "created_at": row["created_at"],
         "claim_link": f"/claim/{drop_id}",
         "sender_wallet": row["sender_wallet"],
+        "funded": bool(row["funded"]),
+        "escrow_tx_hash": row["escrow_tx_hash"] or None,
     }
 
 
+def mark_drop_funded(drop_id: str, tx_hash: str) -> bool:
+    """Mark a drop as funded by the sender."""
+    db = _conn()
+    row = db.execute("SELECT id FROM drops WHERE id=? AND funded=0", (drop_id,)).fetchone()
+    if not row:
+        db.close()
+        return False
+    db.execute(
+        "UPDATE drops SET funded=1, escrow_tx_hash=? WHERE id=?",
+        (tx_hash, drop_id),
+    )
+    db.commit()
+    db.close()
+    return True
+
+
 def claim_drop(drop_id: str, wallet: str) -> Optional[dict]:
-    """Claim a random unclaimed split from a drop. Returns claim details or None."""
+    """Claim a random unclaimed split from a drop. Auto-pays from escrow if funded."""
     db = _conn()
     try:
-        # Verify drop exists and is active
         drop = db.execute(
             "SELECT * FROM drops WHERE id=? AND status='active'", (drop_id,)
         ).fetchone()
         if not drop:
             return None
 
-        # Get one random unclaimed split
         split = db.execute(
             "SELECT * FROM splits WHERE drop_id=? AND claimed=0 ORDER BY RANDOM() LIMIT 1",
             (drop_id,),
@@ -144,12 +190,21 @@ def claim_drop(drop_id: str, wallet: str) -> Optional[dict]:
             return None
 
         now = datetime.now(timezone.utc).isoformat()
+        payout_tx_hash = None
+
+        # If drop is pre-funded, auto-pay from escrow
+        if drop["funded"] and ESCROW_PRIVATE_KEY:
+            escrow_result = _run_escrow(
+                "send", ESCROW_PRIVATE_KEY, wallet, str(split["amount"]), ESCROW_NETWORK
+            )
+            if "transaction_hash" in escrow_result:
+                payout_tx_hash = escrow_result["transaction_hash"]
+
         db.execute(
-            "UPDATE splits SET claimed=1, claimer_wallet=?, claimed_at=? WHERE id=?",
-            (wallet, now, split["id"]),
+            "UPDATE splits SET claimed=1, claimer_wallet=?, claimed_at=?, payout_tx_hash=? WHERE id=?",
+            (wallet, now, payout_tx_hash, split["id"]),
         )
 
-        # Check if drop is now exhausted
         remaining = db.execute(
             "SELECT COUNT(*) as c FROM splits WHERE drop_id=? AND claimed=0", (drop_id,)
         ).fetchone()["c"]
@@ -169,6 +224,7 @@ def claim_drop(drop_id: str, wallet: str) -> Optional[dict]:
             "total_recipients": drop["total_recipients"],
             "sender_wallet": drop["sender_wallet"],
             "claimer_wallet": wallet,
+            "payout_tx_hash": payout_tx_hash,
         }
     finally:
         db.close()

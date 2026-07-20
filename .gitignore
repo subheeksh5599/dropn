@@ -5,3 +5,6 @@ __pycache__/
 dropn.db
 .venv/
 .vercel
+node_modules/
+package-lock.json
+test_dropn.db

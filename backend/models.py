@@ -25,6 +25,8 @@ class DropResponse(BaseModel):
     created_at: str
     claim_link: str
     sender_wallet: str
+    funded: bool = False
+    escrow_tx_hash: Optional[str] = None
 
 
 class ClaimRequest(BaseModel):
@@ -42,6 +44,12 @@ class ClaimResponse(BaseModel):
     total_recipients: int
     sender_wallet: str
     claimer_wallet: str
+    payout_tx_hash: Optional[str] = None
+
+
+class FundDropRequest(BaseModel):
+    """Mark a drop as funded by the sender."""
+    tx_hash: str = Field(min_length=1, description="Nimiq transaction hash of the funding transfer")
 
 
 class DropCreateResponse(BaseModel):
@@ -52,3 +60,4 @@ class DropCreateResponse(BaseModel):
     total_amount: float
     recipients: int
     status: str
+    funded: bool = False

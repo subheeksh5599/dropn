@@ -1,0 +1,12 @@
+{
+  "name": "dropn",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Send NIM like a gift. Claim it like a surprise.",
+  "scripts": {
+    "escrow": "node escrow.js"
+  },
+  "dependencies": {
+    "@nimiq/core": "^2.7.1"
+  }
+}
