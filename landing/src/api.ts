@@ -1,4 +1,6 @@
-const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "/api" : "https://dropn-api.onrender.com");
+// In dev mode, Vite proxies /api to localhost:8000
+// In production, frontend and backend are served from the same Render origin
+const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "/api" : "");
 
 export interface Drop {
   id: string;

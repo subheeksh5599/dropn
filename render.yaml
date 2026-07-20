@@ -1,9 +1,15 @@
 services:
   - type: web
-    name: dropn-api
+    name: dropn
     runtime: python
-    buildCommand: pip install -r backend/requirements.txt
+    buildCommand: |
+      pip install -r backend/requirements.txt
+      cd landing && npm install && npm run build && cd ..
     startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
+      - key: ESCROW_PRIVATE_KEY
+        value: ""
+      - key: ESCROW_NETWORK
+        value: test
