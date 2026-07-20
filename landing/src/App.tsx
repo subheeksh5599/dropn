@@ -293,7 +293,7 @@ function Footer() {
             ["GITHUB", "https://github.com/subheeksh5599/dropn"],
             ["DASHBOARD", "/dashboard"],
             ["API", "#api"],
-            ["DOCS", "#"],
+            ["DOCS", "https://github.com/subheeksh5599/dropn#readme"],
           ].map(([label, href]) =>
             href.startsWith("http") ? (
               <a key={label} href={href} target="_blank" className="font-['Space_Mono'] text-[10px] md:text-xs text-white/40 hover:text-[#FF4D00] transition-colors tracking-[-0.02em] uppercase">
