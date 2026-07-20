@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { createDrop, getDrop } from "../api";
+import { connectWallet } from "../wallet";
 import type { Drop } from "../api";
 
 const STORAGE_KEY = "dropn_drops";
@@ -27,6 +28,7 @@ export default function Dashboard() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [copied, setCopied] = useState("");
+  const [connecting, setConnecting] = useState(false);
 
   const refreshDrops = useCallback(async () => {
     const stored = loadStoredDrops();
@@ -47,11 +49,26 @@ export default function Dashboard() {
   useEffect(() => { refreshDrops(); }, [refreshDrops]);
   useEffect(() => { if (wallet) localStorage.setItem("dropn_wallet", wallet); }, [wallet]);
 
+  const handleConnect = async () => {
+    setConnecting(true);
+    setError("");
+    try {
+      const addr = await connectWallet();
+      setWallet(addr);
+    } catch (err: any) {
+      if (err.message !== "User closed the Hub") {
+        setError(err.message || "Failed to connect wallet");
+      }
+    } finally {
+      setConnecting(false);
+    }
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
-    if (!wallet.trim()) return setError("Enter your Nimiq wallet address");
+    if (!wallet.trim()) return setError("Connect your Nimiq wallet first");
     setLoading(true);
     try {
       const result = await createDrop(
@@ -92,10 +109,26 @@ export default function Dashboard() {
           <div className="lg:col-span-3">
             <form onSubmit={handleCreate} className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8">
               <h2 className="font-['Space_Mono'] text-xs text-[#FF4D00] uppercase tracking-[0.1em] mb-6">New Drop</h2>
+
+              {/* Wallet connect */}
               <div className="mb-5">
                 <label className="block font-['Space_Mono'] text-[11px] text-white/50 uppercase tracking-[0.1em] mb-2">Your Wallet</label>
-                <input type="text" value={wallet} onChange={(e) => setWallet(e.target.value)} placeholder="NQ12..." className="w-full bg-black border border-white/20 rounded-xl px-4 py-3 text-white text-sm font-['Space_Mono'] placeholder:text-white/20 focus:outline-none focus:border-[#FF4D00] transition-colors" />
+                {wallet ? (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-black border border-[#FF4D00]/30 rounded-xl px-4 py-3 text-[#FF4D00] text-sm font-['Space_Mono'] truncate">
+                      {wallet.slice(0, 16)}...{wallet.slice(-8)}
+                    </div>
+                    <button type="button" onClick={() => setWallet("")} className="px-3 py-3 rounded-xl text-white/40 hover:text-white/70 text-xs font-['Space_Mono'] transition-colors">
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <button type="button" onClick={handleConnect} disabled={connecting} className="w-full bg-[#FF4D00] text-black font-['Space_Mono'] text-sm uppercase tracking-[0.1em] font-bold rounded-xl py-3 hover:opacity-90 transition-opacity disabled:opacity-50">
+                    {connecting ? "Connecting..." : "Connect Nimiq Wallet"}
+                  </button>
+                )}
               </div>
+
               <div className="mb-5">
                 <label className="block font-['Space_Mono'] text-[11px] text-white/50 uppercase tracking-[0.1em] mb-2">Amount (NIM)</label>
                 <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="100" min="1" step="0.01" className="w-full bg-black border border-white/20 rounded-xl px-4 py-3 text-white text-sm font-['Space_Mono'] placeholder:text-white/20 focus:outline-none focus:border-[#FF4D00] transition-colors" />
@@ -114,7 +147,7 @@ export default function Dashboard() {
               </div>
               {error && <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-['Space_Mono']">{error}</div>}
               {success && <div className="mb-4 p-3 rounded-xl bg-green-500/10 border border-green-500/30 text-green-400 text-xs font-['Space_Mono'] break-all">{success}</div>}
-              <button type="submit" disabled={loading} className="w-full bg-[#FF4D00] text-black font-['Space_Mono'] text-sm uppercase tracking-[0.1em] rounded-xl py-3.5 hover:opacity-90 transition-opacity disabled:opacity-50 font-bold">{loading ? "Creating..." : "Create Drop"}</button>
+              <button type="submit" disabled={loading || !wallet} className="w-full bg-[#FF4D00] text-black font-['Space_Mono'] text-sm uppercase tracking-[0.1em] rounded-xl py-3.5 hover:opacity-90 transition-opacity disabled:opacity-50 font-bold">{loading ? "Creating..." : "Create Drop"}</button>
             </form>
           </div>
 

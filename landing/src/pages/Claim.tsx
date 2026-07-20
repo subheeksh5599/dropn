@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { getDrop, claimDrop } from "../api";
+import { connectWallet, requestPayment } from "../wallet";
 import type { Drop, ClaimResult } from "../api";
 
 export default function ClaimPage() {
@@ -11,6 +12,7 @@ export default function ClaimPage() {
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState(false);
   const [error, setError] = useState("");
+  const [connecting, setConnecting] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -25,13 +27,45 @@ export default function ClaimPage() {
       });
   }, [id]);
 
+  const handleConnect = async () => {
+    setConnecting(true);
+    setError("");
+    try {
+      const addr = await connectWallet();
+      setWallet(addr);
+    } catch (err: any) {
+      if (err.message !== "User closed the Hub") {
+        setError(err.message || "Failed to connect wallet");
+      }
+    } finally {
+      setConnecting(false);
+    }
+  };
+
   const handleClaim = async () => {
-    if (!id || !wallet.trim()) return setError("Enter your Nimiq wallet address");
+    if (!id || !wallet.trim()) return setError("Connect your Nimiq wallet first");
     setClaiming(true);
     setError("");
     try {
+      // 1. Register the claim with DropN backend
       const result = await claimDrop(id, wallet.trim());
       setClaim(result);
+
+      // 2. Trigger NIM payment via Nimiq Hub
+      // The claimer requests payment from the sender.
+      // In a production app, this would use a pre-funded escrow or
+      // the sender would sign offline. For the demo, we show the
+      // claim amount and the claimer can request it via Hub.
+      try {
+        await requestPayment(
+          result.sender_wallet,
+          result.amount,
+          `DropN: ${result.message}`,
+        );
+      } catch {
+        // Payment is optional — claim is already registered.
+        // The NIM transfer happens separately via Nimiq Hub.
+      }
     } catch (err: any) {
       setError(err.message || "Claim failed");
     } finally {
@@ -152,15 +186,26 @@ export default function ClaimPage() {
           {drop?.claimed_count}/{drop?.total_recipients} claimed
         </p>
 
-        {/* Wallet input */}
+        {/* Wallet connect */}
         <div className="mb-4">
-          <input
-            type="text"
-            value={wallet}
-            onChange={(e) => setWallet(e.target.value)}
-            placeholder="Your Nimiq wallet (NQ12...)"
-            className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3.5 text-white text-sm font-['Space_Mono'] placeholder:text-white/20 focus:outline-none focus:border-[#FF4D00] transition-colors text-center"
-          />
+          {wallet ? (
+            <div className="flex items-center gap-2 mb-4">
+              <div className="flex-1 bg-white/5 border border-[#FF4D00]/30 rounded-xl px-4 py-3.5 text-[#FF4D00] text-sm font-['Space_Mono'] text-center truncate">
+                {wallet.slice(0, 16)}...{wallet.slice(-8)}
+              </div>
+              <button onClick={() => setWallet("")} className="px-3 py-3 rounded-xl text-white/40 hover:text-white/70 text-xs font-['Space_Mono'] transition-colors">
+                ✕
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleConnect}
+              disabled={connecting}
+              className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3.5 text-white text-sm font-['Space_Mono'] hover:border-[#FF4D00] transition-colors disabled:opacity-50"
+            >
+              {connecting ? "Connecting..." : "Connect Nimiq Wallet"}
+            </button>
+          )}
         </div>
 
         {/* Error */}
@@ -180,7 +225,7 @@ export default function ClaimPage() {
         </button>
 
         <p className="font-['Space_Mono'] text-[10px] text-white/20">
-          Powered by DropN on Nimiq Pay
+          Powered by DropN on Nimiq
         </p>
       </div>
     </div>
